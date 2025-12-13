@@ -14,7 +14,7 @@ private:
     string text;
 
 public:
-    SimpleNotification(string &text)
+    SimpleNotification(const string &text)
     {
         this->text = text;
     }
@@ -44,7 +44,7 @@ class TimeStampDecorator : public INotificationDecorator
 {
 public:
     TimeStampDecorator(INotification *n) : INotificationDecorator(n) {}
-    string getContent()
+    string getContent() const override
     {
         return "13th Dec" + notification->getContent();
     }
@@ -276,7 +276,32 @@ public:
     }
 };
 
-int main()
-{
-    cout << "0";
+
+NotificationService* NotificationService::instance = nullptr;
+
+int main() {
+    NotificationService* notificationService = NotificationService::getInstance();
+
+    NotificationObservable* notificationObservable = notificationService->getObservable();
+   
+    Logger* logger = new Logger(notificationObservable);
+
+    NotificationEngine* notificationEngine = new NotificationEngine(notificationObservable);
+
+    notificationEngine->addNotificationStrategy(new EmailStrategy("random.person@gmail.com"));
+    notificationEngine->addNotificationStrategy(new SMSStrategy("+91 9876543210"));
+    notificationEngine->addNotificationStrategy(new PopUpStrategy());
+
+    notificationObservable->addObserver(logger);
+    notificationObservable->addObserver(notificationEngine);
+
+    INotification* notification = new SimpleNotification("Your order has been shipped!");
+    notification = new TimeStampDecorator(notification);
+    notification = new SignatureDecorator(notification, "Customer Care");
+    
+    notificationService->sendNotification(notification);
+
+    delete logger;
+    delete notificationEngine;
+    return 0;
 }
