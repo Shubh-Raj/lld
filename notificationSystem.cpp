@@ -142,6 +142,71 @@ public:
     }
 };
 
+class INotificationStrategy {
+public:    
+    virtual void sendNotification(string content) = 0;
+};
+
+class EmailStrategy : public INotificationStrategy {
+private:
+    string emailId;
+public:
+
+    EmailStrategy(string emailId) {
+        this->emailId = emailId;
+    }
+
+    void sendNotification(string content) override {
+        cout << "Sending email Notification to: " << emailId << "\n" << content;
+    }
+};
+
+class SMSStrategy : public INotificationStrategy {
+private:
+    string mobileNumber;
+public:
+
+    SMSStrategy(string mobileNumber) {
+        this->mobileNumber = mobileNumber;
+    }
+
+    void sendNotification(string content) override {
+        cout << "Sending SMS Notification to: " << mobileNumber << "\n" << content;
+    }
+};
+
+class PopUpStrategy : public INotificationStrategy {
+public:
+    void sendNotification(string content) override {
+        cout << "Sending Popup Notification: \n" << content;
+    }
+};
+
+
+class NotificationEngine : public IObserver {
+private:
+    NotificationObservable* notificationObservable;
+    vector<INotificationStrategy*> notificationStrategies;
+
+public:
+    NotificationEngine(NotificationObservable* observable) {
+        this->notificationObservable = observable;
+    }
+
+    void addNotificationStrategy(INotificationStrategy* ns) {
+        this->notificationStrategies.push_back(ns);
+    }
+
+
+    void update() {
+        string notificationContent = notificationObservable->getNotificationContent();
+        for(const auto notificationStrategy : notificationStrategies) {
+            notificationStrategy->sendNotification(notificationContent);
+        }
+    }
+};
+
+
 int main(){
     cout<<"0";
 }
