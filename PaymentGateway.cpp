@@ -175,3 +175,31 @@ class GatewayFactory{
         }
     }
 };
+
+GatewayFactory GatewayFactory::instance;
+
+class PaymentService{
+    private:
+    static PaymentService instance;
+    PaymentGateway* paymentGateway;
+    PaymentService(){
+        paymentGateway = nullptr;
+    }
+    public:
+    static PaymentService& getInstance(){
+        return instance;
+    }
+    void setGateway(PaymentGateway* g) {
+        // if (gateway) delete gateway;
+        paymentGateway = g;
+    }
+     bool processPayment(PaymentRequest* request) {
+        if (!paymentGateway) {
+            cout << "[PaymentService] No payment gateway selected.\n";
+            return false;
+        }
+        return paymentGateway->processPayment(request);
+    }
+};
+
+PaymentService PaymentService:: instance;
