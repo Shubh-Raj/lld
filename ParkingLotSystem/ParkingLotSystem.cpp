@@ -241,3 +241,51 @@ class FarthestFit : public ParkingStrategy{
         return nullptr;
     }
 };
+
+class FeeStrategy
+{
+public:
+    virtual double calculateFee(ParkingTicket* ticket) = 0;
+    virtual ~FeeStrategy() = default;
+};
+
+class FlatRateFeeStrategy : public FeeStrategy
+{
+private:
+    double RATE_PER_HOUR;
+
+public:
+    FlatRateFeeStrategy(double rate = 10.0) : RATE_PER_HOUR(rate) {}
+
+    double calculateFee(ParkingTicket* ticket) override
+    {
+        long duration = ticket->getExitTimestamp() - ticket->getEntryTimestamp();
+        double hours = ceil((double)duration / 3600.0); // Convert seconds to hours, round up
+        return hours * RATE_PER_HOUR;
+    }
+};
+
+class VehicleBasedFeeStrategy : public FeeStrategy
+{
+private:
+    map<VehicleSize, double> HOURLY_RATES;
+
+public:
+    VehicleBasedFeeStrategy()
+    {
+        HOURLY_RATES[SMALL] = 5.0;   // Bike
+        HOURLY_RATES[MEDIUM] = 10.0; // Car
+        HOURLY_RATES[LARGE] = 20.0;  // Truck
+    }
+
+    double calculateFee(ParkingTicket* ticket) override
+    {
+        long duration = ticket->getExitTimestamp() - ticket->getEntryTimestamp();
+        double hours = ceil((double)duration / 3600.0);
+        
+        Vehicle* vehicle = ticket->getParkingSpot()->getParkedVehicle();
+        VehicleSize size = vehicle->getSize();
+        
+        return hours * HOURLY_RATES[size];
+    }
+};
