@@ -124,27 +124,81 @@ public:
     }
 };
 
-class ParkingFloor{
-    private:
+class ParkingFloor
+{
+private:
     int floorNumber;
-    map<string,ParkingSpot*> spots;
-    // vector<ParkingObserver*> observers;
-    public:
-    ParkingFloor(int floorNum){
+    map<string, ParkingSpot *> spots;
+    vector<ParkingObserver *> observers;
+
+public:
+    ParkingFloor(int floorNum)
+    {
         floorNumber = floorNumber;
     }
-    void addSpot(ParkingSpot* spot) {
+    void addSpot(ParkingSpot *spot)
+    {
         spots[spot->getSpotId()] = spot;
     }
-    ParkingSpot* findAvailableSpot(Vehicle* vehicle) {
-        for (auto it : spots) {
-            if (it.second->canFitVehicle(vehicle)) {
+    ParkingSpot *findAvailableSpot(Vehicle *vehicle)
+    {
+        for (auto it : spots)
+        {
+            if (it.second->canFitVehicle(vehicle))
+            {
                 return it.second;
             }
         }
         return nullptr; // No spot found
     }
-    int getFloorNumber() const {
+    int getFloorNumber() const
+    {
         return floorNumber;
+    }
+    int getAvailableSpotsCount()
+    {
+        int count = 0;
+        for (auto i : spots)
+        {
+            if (i.second->isAvailable())
+            {
+                count++;
+            }
+        }
+        return count;
+    }
+    // can create a different Iobeservable class
+    void registerObserver(ParkingObserver *observer)
+    {
+        observers.push_back(observer);
+    }
+
+    void removeObserver(ParkingObserver *observer)
+    {
+        observers.erase(remove(observers.begin(), observers.end(), observer), observers.end());
+    }
+    void notifyObservers()
+    {
+        int availableSpots = getAvailableSpotsCount();
+        for (ParkingObserver *observer : observers)
+        {
+            observer->update(floorNumber, availableSpots);
+        }
+    }
+};
+
+class ParkingObserver
+{
+public:
+    virtual void update(int floorNumber, int availableSpots) = 0;
+    virtual ~ParkingObserver() = default;
+};
+
+class EntranceDisplayBoard : public ParkingObserver
+{
+public:
+    void update(int floorNumber, int availableSpots) override
+    {
+        cout << "DISPLAY BOARD: Floor " << floorNumber << " has " << availableSpots << " spots available." << endl;
     }
 };
