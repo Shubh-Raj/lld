@@ -124,6 +124,13 @@ public:
     }
 };
 
+class ParkingObserver
+{
+public:
+    virtual void update(int floorNumber, int availableSpots) = 0;
+    virtual ~ParkingObserver() = default;
+};
+
 class ParkingFloor
 {
 private:
@@ -187,12 +194,7 @@ public:
     }
 };
 
-class ParkingObserver
-{
-public:
-    virtual void update(int floorNumber, int availableSpots) = 0;
-    virtual ~ParkingObserver() = default;
-};
+
 
 class EntranceDisplayBoard : public ParkingObserver
 {
@@ -271,14 +273,14 @@ public:
 class VehicleBasedFeeStrategy : public FeeStrategy
 {
 private:
-    map<VehicleSize, double> HOURLY_RATES;
+    map<VehicleSize, double> hourRates;
 
 public:
     VehicleBasedFeeStrategy()
     {
-        HOURLY_RATES[SMALL] = 5.0;   // Bike
-        HOURLY_RATES[MEDIUM] = 10.0; // Car
-        HOURLY_RATES[LARGE] = 20.0;  // Truck
+        hourRates[SMALL] = 5.0;   // Bike
+        hourRates[MEDIUM] = 10.0; // Car
+        hourRates[LARGE] = 20.0;  // Truck
     }
 
     double calculateFee(ParkingTicket *ticket) override
@@ -289,14 +291,14 @@ public:
         Vehicle *vehicle = ticket->getParkingSpot()->getParkedVehicle();
         VehicleSize size = vehicle->getSize();
 
-        return hours * HOURLY_RATES[size];
+        return hours * hourRates[size];
     }
 };
 
 class ParkingLotSystem
 {
 private:
-    static ParkingLotSystem *instance; //singleton
+    static ParkingLotSystem *instance; // singleton
     vector<ParkingFloor *> floors;
     ParkingStrategy *parkingStrategy;
     FeeStrategy *feeStrategy;
@@ -362,15 +364,58 @@ public:
         cout << "Vehicle unparked. Fee: $" << fee << endl;
         return fee;
     }
-     vector<ParkingFloor*>& getFloors()
+    vector<ParkingFloor *> &getFloors()
     {
         return floors;
     }
 };
 
-ParkingLotSystem* ParkingLotSystem::instance=nullptr;
+ParkingLotSystem *ParkingLotSystem::instance = nullptr;
 
-int main(){
-    //demo
-    ParkingLotSystem* parkingLot = ParkingLotSystem::getInstance();
+int main()
+{
+    // demo
+    ParkingLotSystem *parkingLot = ParkingLotSystem::getInstance();
+
+    ParkingFloor *floor1 = new ParkingFloor(1);
+    ParkingFloor *floor2 = new ParkingFloor(2);
+
+    floor1->addSpot(new ParkingSpot("1-S1", SMALL));
+    floor1->addSpot(new ParkingSpot("1-M1", MEDIUM));
+    floor1->addSpot(new ParkingSpot("1-L1", LARGE));
+
+    floor2->addSpot(new ParkingSpot("2-S1", SMALL));
+    floor2->addSpot(new ParkingSpot("2-M1", MEDIUM));
+
+    // display boards as observers
+    EntranceDisplayBoard *display1 = new EntranceDisplayBoard();
+    floor1->registerObserver(display1);
+    floor2->registerObserver(display1);
+
+    parkingLot->addFloor(floor1);
+    parkingLot->addFloor(floor2);
+
+    Car *car1 = new Car("CAR-001");
+    Bike *bike1 = new Bike("BIKE-001");
+    Truck *truck1 = new Truck("TRUCK-001");
+
+    // parkingLot->setParkingStrategy(new NearestFit());
+
+    cout << "\n Parking Vehicles" << endl;
+    ParkingTicket *carTicket = parkingLot->parkVehicle(car1);
+    ParkingTicket *bikeTicket = parkingLot->parkVehicle(bike1);
+    ParkingTicket *truckTicket = parkingLot->parkVehicle(truck1);
+
+    cout << "\n Display Board Update " << endl;
+    floor1->notifyObservers();
+    floor2->notifyObservers();
+
+    cout << "\n Unparking Vehicle " << endl;
+    if (carTicket != nullptr)
+    {
+        parkingLot->unpark(carTicket->getTicketId());
+    }
+
+    cout << "\n Display Board Update" << endl;
+    floor1->notifyObservers();
 }
