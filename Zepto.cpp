@@ -125,3 +125,24 @@ public:
     }
 };
 
+class InventoryManager{
+    InventoryStore* inventoryStore;
+    public:
+    InventoryManager(InventoryStore* store){
+        inventoryStore = store;
+    }
+    void addStock(int sku, int qty){
+        Product* product = ProductFactory::createProduct(sku);
+        inventoryStore->addProduct(product,qty);
+        cout << "[InventoryManager] Added SKU " << sku << " Qty " << qty << endl;
+    }
+    void removeStock(int sku, int qty){
+        inventoryStore->removeProduct(sku,qty);
+    }
+    int checkStock(int sku) {
+        return inventoryStore->checkStock(sku);
+    }
+    vector<Product*> getAvailableProducts() {
+        return inventoryStore->listAvailableProducts();
+    }
+};
