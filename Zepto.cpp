@@ -248,3 +248,52 @@ public:
         return this->inventoryManager;
     }
 };
+
+class DarkStoreManager {
+private:
+    vector<DarkStore*>* darkStores;
+    static DarkStoreManager* instance;
+
+    DarkStoreManager() {
+        darkStores = new vector<DarkStore*>();
+    }
+
+public:
+    static DarkStoreManager* getInstance() {
+        if(instance == nullptr) {
+            instance = new DarkStoreManager();
+        }
+        return instance;
+    }
+
+    void registerDarkStore(DarkStore* ds) {
+        darkStores->push_back(ds);
+    }
+
+    vector<DarkStore*> getNearbyDarkStores(double ux, double uy, double maxDistance) {
+        vector<pair<double,DarkStore*>> distList;
+        for (auto ds : *darkStores) {
+            double d = ds->distanceTo(ux, uy);
+            if (d <= maxDistance) {
+                distList.push_back(make_pair(d, ds));
+            }
+        }
+        sort(distList.begin(), distList.end(),
+             [](auto &a, auto &b){ return a.first < b.first; });
+
+        vector<DarkStore*> result;
+        for (auto &p : distList) {
+            result.push_back(p.second);
+        }
+        return result;
+    }
+
+    ~DarkStoreManager() {
+        for (auto ds : *darkStores) {
+            delete ds;
+        }
+        delete darkStores;
+    }
+};
+
+DarkStoreManager* DarkStoreManager::instance = nullptr;
