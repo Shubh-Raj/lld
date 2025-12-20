@@ -125,7 +125,7 @@ public:
     }
 };
 
-class InventoryManager{
+class InventoryManager{ //not singleton as each inventory has a different manager
     InventoryStore* inventoryStore;
     public:
     InventoryManager(InventoryStore* store){
@@ -144,5 +144,42 @@ class InventoryManager{
     }
     vector<Product*> getAvailableProducts() {
         return inventoryStore->listAvailableProducts();
+    }
+};
+
+class ReplenishStrategy{
+    public:
+    virtual void replenish(InventoryManager* manager, map<int,int> itemsToReplenish) = 0;
+    virtual ~ReplenishStrategy() {}
+};
+
+class ThresholdReplenishStrategy : public ReplenishStrategy {
+private:
+    int threshold;
+public:
+    ThresholdReplenishStrategy(int threshold) {
+        this->threshold = threshold;
+    }
+    void replenish(InventoryManager* manager, map<int,int> itemsToReplenish) override {
+        cout << "[ThresholdReplenish] Checking threshold... \n";
+        for (auto it : itemsToReplenish) {
+            int sku = it.first;
+            int qtyToAdd = it.second;
+            int current  = manager->checkStock(sku);
+            if (current < threshold) {
+                manager->addStock(sku, qtyToAdd);
+                cout << "  -> SKU " << sku << " was " << current 
+                     << ", replenished by " << qtyToAdd << endl;
+            }
+        }
+    }
+};
+
+class WeeklyReplenishStrategy : public ReplenishStrategy {
+public:
+    WeeklyReplenishStrategy() {}
+    void replenish(InventoryManager* manager, map<int,int> itemsToReplenish) override {
+        //business
+        cout << "[WeeklyReplenish] Weekly replenishment triggered for inventory.\n";
     }
 };
