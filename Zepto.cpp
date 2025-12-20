@@ -297,3 +297,55 @@ public:
 };
 
 DarkStoreManager* DarkStoreManager::instance = nullptr;
+
+
+class Cart {
+public:
+    vector<pair<Product*,int>> items;  // (Product*, qty)
+
+    void addItem(int sku, int qty) {
+        Product* prod = ProductFactory::createProduct(sku);
+        items.push_back(make_pair(prod, qty));
+        cout << "[Cart] Added SKU " << sku << " (" << prod->getName() 
+             << ") x" << qty << endl;
+    }
+
+    double getTotal() {
+        double sum = 0.0;
+        for (auto &it : items) {
+            sum += (it.first->getPrice() * it.second);
+        }
+        return sum;
+    }
+
+    vector<pair<Product*,int>> getItems() {
+        return items;
+    }
+
+    ~Cart() {
+        for (auto &it : items) {
+            delete it.first;
+        }
+    }
+};
+
+class User {
+public:
+    string name;
+    double x, y;
+    Cart* cart;  // User owns a cart
+
+    User(string n, double x_coord, double y_coord) {
+        name = n;
+        x = x_coord;
+        y = y_coord;
+        cart = new Cart();
+    }
+    ~User() {
+        delete cart;
+    }
+
+    Cart* getCart() {
+        return cart;
+    }
+};
