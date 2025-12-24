@@ -27,11 +27,58 @@ class Car{
         cout << "Year: " << year << endl;
         cout << "Rental Price Per Day: " << rentalPricePerDay << endl;
     }
+    string getCarType(){
+        return type;
+    }
+    int getPrice(){
+        return rentalPricePerDay;
+    }
 };
 
 int Car::carId = 0;
 
-class SearchStrategy;
+class SearchStrategy{
+public:
+    virtual vector<Car*> findCars(vector<Car*>& listOfCars) = 0;
+    virtual ~SearchStrategy(){}
+};
+
+class TypeSearchStrategy : public SearchStrategy{
+    private:
+    string type;
+    public:
+    TypeSearchStrategy(string type){
+        this->type = type;
+    }
+    vector<Car*> cars;
+    vector<Car*> findCars(vector<Car*>& listOfCars){
+        for(Car* car: listOfCars){
+            if(car->getCarType()==type){
+                cars.push_back(car);
+            }
+        }
+        return cars;
+    }
+};
+
+class PriceSearchStrategy : public SearchStrategy{
+    private:
+    int maxPrice;
+    public:
+    PriceSearchStrategy(int maxPrice){
+        this->maxPrice = maxPrice;
+    }
+    vector<Car*> cars;
+    vector<Car*> findCars(vector<Car*>& listOfCars){
+        for(Car* car: listOfCars){
+            if(car->getPrice()<=maxPrice){
+                cars.push_back(car);
+            }
+        }
+        return cars;
+    }
+};
+
 
 class CarManager{
     private:
@@ -63,7 +110,9 @@ class CarManager{
             car->getCarDetails();
         }
     }
-    // vector<Car*> performSearch(){
-    //     return searchStrategy->findCars(listOfCars);
-    // }
+    vector<Car*> performSearch(){
+        return searchStrategy->findCars(listOfCars);
+    }
 };
+
+CarManager* CarManager::instance=nullptr;
