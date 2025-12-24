@@ -136,4 +136,27 @@ class Customer{
     }
 };
 
+enum ReservationStatus{
+    ACTIVE, CANCELLED, COMPLETED
+};
+
 int Customer::customerId = 0;
+
+class Reservation{
+    private:
+    static int resId;
+    Customer* customer;
+    int startDate, endDate; //for ease in comparing
+    Car* reservedCar;
+    ReservationStatus status;
+    public:
+    Reservation(Customer* c, Car* car, int start, int end) 
+        : customer(c), reservedCar(car), startDate(start), endDate(end) {
+        this->status = ACTIVE;
+    }
+    int calculateTotalAmount(){
+        int duration = endDate-startDate+1;
+        int cost = duration*reservedCar->getRentalPricePerDay();
+        return cost;
+    }
+};
