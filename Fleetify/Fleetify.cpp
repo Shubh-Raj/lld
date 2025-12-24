@@ -8,7 +8,7 @@ class Car{
     string make,model,type, licensePlateNo; 
     int year, rentalPricePerDay;
     public:
-    Car(string& make, string& model,string& type, string& licensePlateNo, int year, int rentalPricePerDay){
+    Car(const string& make, const string& model, const string& type, const string& licensePlateNo, int year, int rentalPricePerDay){
         this->make = make;
         this->model = model;
         this->type = type;
@@ -54,8 +54,8 @@ class TypeSearchStrategy : public SearchStrategy{
     TypeSearchStrategy(string type){
         this->type = type;
     }
-    vector<Car*> cars;
     vector<Car*> findCars(vector<Car*>& listOfCars){
+        vector<Car*> cars;
         for(Car* car: listOfCars){
             if(car->getCarType()==type){
                 cars.push_back(car);
@@ -72,8 +72,8 @@ class PriceSearchStrategy : public SearchStrategy{
     PriceSearchStrategy(int maxPrice){
         this->maxPrice = maxPrice;
     }
-    vector<Car*> cars;
     vector<Car*> findCars(vector<Car*>& listOfCars){
+        vector<Car*> cars;
         for(Car* car: listOfCars){
             if(car->getPrice()<=maxPrice){
                 cars.push_back(car);
@@ -127,8 +127,7 @@ class Customer{
     int customerId;
     string name, phoneNo, licenseNo;
     public:
-    Customer(int customerId, string& name, string& phoneNo, string& licenseNo){
-        this->customerId = customerId;
+    Customer(const string& name, const string& phoneNo, const string& licenseNo){
         this->name = name;
         this->phoneNo = phoneNo;
         this->licenseNo = licenseNo;
@@ -202,9 +201,10 @@ class Reservation{
         cout << "End Date: " << endDate << endl;
         cout << "Status: ";
         switch(status) {
-            case ACTIVE: cout << "ACTIVE"; break;
-            case CANCELLED: cout << "CANCELLED"; break;
-            case COMPLETED: cout << "COMPLETED"; break;
+            case BOOKED: cout << "BOOKED\n"; break;
+            case ACTIVE: cout << "ACTIVE\n"; break;
+            case CANCELLED: cout << "CANCELLED\n"; break;
+            case COMPLETED: cout << "COMPLETED\n"; break;
         }
         cout << endl;
         cout << "Total Amount: " << calculateTotalAmount() << endl;
@@ -219,7 +219,9 @@ class ReservationManager{
     map<int,vector<Reservation*>>reservationsByCar; //{carId,res}
     map<int,Reservation*> reservationsByResId; //{resId,res}
     map<int,vector<Reservation*>> reservationsByCustomer; //{custId,res}
-    ReservationManager(){}
+    ReservationManager() {
+        carManager = CarManager::getInstance();
+    }
     static ReservationManager* instance;
     public:
     static ReservationManager* getInstance(){
@@ -239,10 +241,10 @@ class ReservationManager{
         }
         return true;
     }
-    Reservation* createReservation(Customer* customer, Car* car, int startDate, int endDate){
+    int createReservation(Customer* customer, Car* car, int startDate, int endDate){
         if(!isCarAvailable(car,startDate,endDate)){
             cout<<"Car is unavailable!\n";
-            return nullptr;
+            return -1;
         }
         Reservation* reservation = new Reservation(customer,car,startDate,endDate);
         int resId = reservation->getResId();
@@ -252,6 +254,7 @@ class ReservationManager{
         int custId = customer->getCustomerId();
         reservationsByCustomer[custId].push_back(reservation);
         cout<<"Reservation made successfully!\n";
+        return resId;
     }
     void updateReservation(int resId, int newStartDate, int newEndDate){
         Reservation* reservation = reservationsByResId[resId];
@@ -262,7 +265,6 @@ class ReservationManager{
         }
         reservation->updateStartEndDate(newStartDate,newEndDate);
         cout<<"Updated reservation Details\n";
-        delete reservation;
     }
     void cancelReservation(int resId){
         Reservation* reservation = reservationsByResId[resId];
@@ -325,7 +327,9 @@ class AvailablitySearchStrategy : public SearchStrategy{
 class SearchFactory{
     private:
     ReservationManager* reservationManager;
-    SearchFactory(){}
+    SearchFactory(){
+        reservationManager = ReservationManager::getInstance();
+    }
     static SearchFactory* instance;
     public:
     static SearchFactory* getInstance(){
@@ -344,6 +348,8 @@ class SearchFactory{
         return new AvailablitySearchStrategy(reservationManager, startDate, endDate);
     }
 };
+
+SearchFactory* SearchFactory::instance=nullptr;
 
 class PaymentStrategy{
     public:
@@ -395,3 +401,88 @@ class PaymentFactory{
         return new NetBanking(id);
     }
 };
+
+PaymentFactory* PaymentFactory::instance=nullptr;
+
+//facade
+class CarRentalSystem{
+    private:
+    ReservationManager* reservationManager;
+    CarManager* carManager;
+    SearchFactory* searchFactory;
+    PaymentFactory* paymentFactory;
+    vector<Customer*> customers;
+    CarRentalSystem(){
+        reservationManager = ReservationManager::getInstance();
+        carManager = CarManager::getInstance();
+        searchFactory = SearchFactory::getInstance();
+        paymentFactory = PaymentFactory::getInstance();
+    };
+    static CarRentalSystem* instance;
+    public:
+    static CarRentalSystem* getInstance(){
+        if(instance==nullptr){
+            instance = new CarRentalSystem();
+        }
+        return instance;
+    }
+    int makeBooking(Customer* customer,Car* car, int startDate, int endDate){
+        return reservationManager->createReservation(customer,car,startDate,endDate);
+    }
+    void cancelBooking(int resId){
+        reservationManager->cancelReservation(resId);
+    }
+    void listAllCars(){
+        carManager->getAllCarList();
+    }
+    void browseByPrice(int maxPrice) {
+        carManager->setSearchStrategy(searchFactory->createPriceStrategy(maxPrice));
+        vector<Car*> cars = carManager->performSearch();
+        for(Car* car : cars){
+            car->getCarDetails();
+        }
+    }
+    void browseByType(string type){
+        carManager->setSearchStrategy(searchFactory->createTypeStrategy(type));
+        vector<Car*> cars = carManager->performSearch();
+        for(Car* car : cars){
+            car->getCarDetails();
+        }
+    }
+    void browseByDate(int start, int end){
+        carManager->setSearchStrategy(searchFactory->createAvailabilityStrategy(start,end));
+        vector<Car*> cars = carManager->performSearch();
+        for(Car* car : cars){
+            car->getCarDetails();
+        }
+    }
+    void checkOut(int resId){
+        reservationManager->checkOut(resId);
+    }
+    void checkIn(int resId){
+        reservationManager->checkIn(resId);
+        //need to process payment
+    }
+    void processPayment(int resId, string paymentType, string id){
+        Reservation* reservation = reservationManager->getReservation(resId);
+        if (!reservation) {
+            cout << "Invalid reservation ID.\n";
+            return;
+        }
+        int amount = reservation->calculateTotalAmount();
+        PaymentStrategy* paymentStrategy = nullptr;
+        //can move this part to factory
+        if(paymentType=="UPI"){
+            paymentStrategy = paymentFactory->createUPIStrategy(id);
+            paymentStrategy->processPayment(amount);
+        }
+        if(paymentType=="NetBanking"){
+            paymentStrategy = paymentFactory->createNetBankingStrategy(id);
+            paymentStrategy->processPayment(amount);
+        }
+        delete paymentStrategy;
+    }
+};
+
+CarRentalSystem* CarRentalSystem::instance=nullptr;
+
