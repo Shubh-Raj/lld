@@ -3,7 +3,8 @@ using namespace std;
 
 class Car{
     private:
-    static int carId;
+    static int nextCarId;
+    int carId;
     string make,model,type, licensePlateNo; 
     int year, rentalPricePerDay;
     public:
@@ -14,7 +15,7 @@ class Car{
         this->licensePlateNo = licensePlateNo;
         this->year = year;
         this->rentalPricePerDay = rentalPricePerDay;
-        carId=++carId;
+        carId=++nextCarId;
     }
     int getRentalPricePerDay(){
         return rentalPricePerDay;
@@ -38,7 +39,7 @@ class Car{
     }
 };
 
-int Car::carId = 0;
+int Car::nextCarId = 0;
 
 class SearchStrategy{
 public:
@@ -90,7 +91,7 @@ class CarManager{
     SearchStrategy* searchStrategy;
     CarManager(){}
     public:
-    CarManager* getInstance(){
+    static CarManager* getInstance(){
         if(instance==nullptr){
             instance = new CarManager();
         }
@@ -122,7 +123,8 @@ CarManager* CarManager::instance=nullptr;
 
 class Customer{
     private:
-    static int customerId;
+    static int nextCustomerId;
+    int customerId;
     string name, phoneNo, licenseNo;
     public:
     Customer(int customerId, string& name, string& phoneNo, string& licenseNo){
@@ -130,7 +132,7 @@ class Customer{
         this->name = name;
         this->phoneNo = phoneNo;
         this->licenseNo = licenseNo;
-        customerId = ++customerId;
+        customerId = ++nextCustomerId;
     }
     int getCustomerId(){
         return customerId;
@@ -146,11 +148,12 @@ enum ReservationStatus{
     BOOKED, ACTIVE, CANCELLED, COMPLETED
 };
 
-int Customer::customerId = 0;
+int Customer::nextCustomerId = 0;
 
 class Reservation{
     private:
-    static int resId;
+    static int nextResId;
+    int resId;
     Customer* customer;
     int startDate, endDate; //for ease in comparing
     Car* reservedCar;
@@ -159,6 +162,7 @@ class Reservation{
     Reservation(Customer* c, Car* car, int start, int end) 
         : customer(c), reservedCar(car), startDate(start), endDate(end) {
         this->status = BOOKED;
+        resId = ++nextResId;
     }
     void updateStartEndDate(int start, int end){
         this->startDate = start;
@@ -207,6 +211,8 @@ class Reservation{
     }
 };
 
+int Reservation::nextResId = 0;
+
 class ReservationManager{
     private:
     CarManager* carManager;
@@ -216,7 +222,7 @@ class ReservationManager{
     ReservationManager(){}
     static ReservationManager* instance;
     public:
-    ReservationManager* getInstance(){
+    static ReservationManager* getInstance(){
         if(instance==nullptr){
             instance = new ReservationManager();
         }
@@ -251,7 +257,7 @@ class ReservationManager{
         Reservation* reservation = reservationsByResId[resId];
         Car* reservedCar  = reservation->getReservedCar();
         if(!isCarAvailable(reservedCar,newStartDate,newEndDate)){
-            cout<<"Car is already booked on this dates\n";
+            cout<<"Car is already booked on these dates\n";
             return;
         }
         reservation->updateStartEndDate(newStartDate,newEndDate);
@@ -263,18 +269,28 @@ class ReservationManager{
         reservation->setStatus(CANCELLED);
         reservationsByResId.erase(resId);
         int custId = reservation->getCustId();
-        reservationsByCustomer.erase(custId);
+        auto& custReservations = reservationsByCustomer[custId];
+        custReservations.erase(
+            remove(custReservations.begin(), custReservations.end(), reservation),
+            custReservations.end()
+        );
         int carId = reservation->getCarId();
-        reservationsByCar.erase(carId);
+        auto& carReservations = reservationsByCar[carId];
+        carReservations.erase(
+            remove(carReservations.begin(), carReservations.end(), reservation),
+            carReservations.end()
+        );
         delete reservation;
         cout<<"Reservation cancelled successfully. \n";
     }
     void checkOut(int resId){
         Reservation* reservation = reservationsByResId[resId];
+        cout<<"Car is out\n";
         reservation->setStatus(ACTIVE);
     }
     void checkIn(int resId){
         Reservation* reservation = reservationsByResId[resId];
+        cout<<"Car is in\n";
         reservation->setStatus(COMPLETED);
     }
     Reservation* getReservation(int resId){
@@ -284,3 +300,24 @@ class ReservationManager{
 };
 
 ReservationManager* ReservationManager::instance=nullptr;
+
+class AvailablitySearchStrategy : public SearchStrategy{
+    private:
+    int startDate, endDate;
+    ReservationManager* mgr;
+    public:
+    AvailablitySearchStrategy(ReservationManager* mgr, int startDate, int endDate){
+        this->mgr = mgr;
+        this->startDate = startDate;
+        this->endDate = endDate;
+    }
+    vector<Car*> findCars(vector<Car*>& listOfCars){
+        vector<Car*> cars;
+        for(Car* car: listOfCars){
+            if(mgr->isCarAvailable(car,startDate,endDate)){
+                cars.push_back(car);
+            }
+        }
+        return cars;
+    }
+};
