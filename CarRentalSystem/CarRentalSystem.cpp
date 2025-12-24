@@ -321,3 +321,27 @@ class AvailablitySearchStrategy : public SearchStrategy{
         return cars;
     }
 };
+
+
+class SearchFactory{
+    private:
+    ReservationManager* reservationManager;
+    SearchFactory(){}
+    static SearchFactory* instance;
+    public:
+    static SearchFactory* getInstance(){
+        if(instance==nullptr){
+            instance = new SearchFactory();
+        }
+        return instance;
+    }
+    SearchStrategy* createPriceStrategy(int maxPrice){
+        return new PriceSearchStrategy(maxPrice);
+    }
+    SearchStrategy* createTypeStrategy(string type){
+        return new TypeSearchStrategy(type);
+    }
+    SearchStrategy* createAvailabilityStrategy(int startDate, int endDate){
+        return new AvailablitySearchStrategy(reservationManager, startDate, endDate);
+    }
+};
