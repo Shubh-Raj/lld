@@ -349,3 +349,28 @@ public:
         return cart;
     }
 };
+
+class DeliveryPartner {
+public:
+    string name;
+    DeliveryPartner(string n) {
+        name = n;
+    }
+};
+
+class Order {
+public:
+    static int nextId;
+    int orderId;
+    User* user;
+    vector<pair<Product*,int>> items;     // (Product*, qty)
+    vector<DeliveryPartner*> partners;
+    double totalAmount;
+
+    Order(User* u) {
+        orderId = nextId++;
+        user = u;
+        totalAmount = 0.0;
+    }
+};
+    int Order::nextId = 1;
